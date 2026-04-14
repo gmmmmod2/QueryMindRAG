@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { MessageSquare, Library, Settings, Plus, Trash2, User } from 'lucide-react';
+import { MessageSquare, Library, Settings, Plus, Trash2, User, ChevronRight } from 'lucide-react';
 import { Button } from './ui/button';
 import { ScrollArea } from './ui/scroll-area';
 import { Separator } from './ui/separator';
@@ -128,14 +128,21 @@ export function Sidebar({ onNavigate }: SidebarProps) {
 
       <div className="mt-auto px-6 pt-4">
         <Separator className="mb-4" />
-        <div className="flex items-center gap-3 py-2">
+        <div
+          className="flex items-center gap-3 py-2 px-2 rounded-lg hover:bg-secondary/50 cursor-pointer transition-colors group"
+          onClick={() => {
+            navigate('/user');
+            onNavigate?.();
+          }}
+        >
           <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
             <User className="h-4 w-4" />
           </div>
-          <div className="flex flex-col overflow-hidden">
+          <div className="flex flex-col overflow-hidden flex-1">
             <span className="text-sm font-medium truncate">测试用户</span>
             <span className="text-xs text-muted-foreground truncate">2233760838g@gmail.com</span>
           </div>
+          <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
         </div>
       </div>
     </div>

@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Moon, Sun, Globe, Key, Cpu, Sliders, Database, Save, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
@@ -10,10 +9,47 @@ import { Separator } from '@/components/ui/separator';
 import { useTheme } from '@/hooks/useTheme';
 import { getSettings, saveSettings, type DeepSeekSettings } from '@/lib/deepseekApi';
 
+// Custom range slider with visible track fill
+function RangeSlider({
+  min, max, step, value, onChange, disabled = false,
+}: {
+  min: number; max: number; step: number; value: number;
+  onChange: (v: number) => void; disabled?: boolean;
+}) {
+  const pct = ((value - min) / (max - min)) * 100;
+  return (
+    <div className="relative w-full h-6 flex items-center">
+      <div className="absolute left-0 right-0 h-2 rounded-full bg-muted overflow-hidden">
+        <div
+          className="h-full bg-primary rounded-full transition-all"
+          style={{ width: `${pct}%`, opacity: disabled ? 0.4 : 1 }}
+        />
+      </div>
+      <input
+        type="range"
+        min={min} max={max} step={step} value={value}
+        onChange={(e) => onChange(parseFloat(e.target.value))}
+        disabled={disabled}
+        className="absolute w-full h-6 opacity-0 cursor-pointer disabled:cursor-not-allowed z-10"
+      />
+      <div
+        className="absolute w-4 h-4 rounded-full bg-white border-2 border-primary shadow-sm transition-all pointer-events-none"
+        style={{
+          left: `calc(${pct}% - 8px)`,
+          opacity: disabled ? 0.4 : 1,
+        }}
+      />
+    </div>
+  );
+}
+
+const CHUNK_SIZES = [512, 1024, 2048] as const;
+
 export function SettingsPage() {
   const { theme, toggleTheme } = useTheme();
   const [settings, setSettings] = useState<DeepSeekSettings>(getSettings());
   const [saved, setSaved] = useState(false);
+  const [chunkSize, setChunkSize] = useState(1024);
 
   const handleModelChange = (model: DeepSeekSettings['model']) => {
     setSettings(prev => ({ ...prev, model }));
@@ -104,22 +140,28 @@ export function SettingsPage() {
               <div className="space-y-4">
                 <Label>当前模型</Label>
                 <div className="grid grid-cols-2 gap-4">
-                  <Button
-                    variant={settings.model === 'deepseek-chat' ? 'secondary' : 'outline'}
-                    className={`h-auto py-4 flex flex-col items-start ${settings.model === 'deepseek-chat' ? 'border-2 border-primary' : ''}`}
+                  <button
                     onClick={() => handleModelChange('deepseek-chat')}
+                    className={`h-auto py-4 px-4 flex flex-col items-start rounded-lg border-2 transition-all ${
+                      settings.model === 'deepseek-chat'
+                        ? 'border-primary bg-primary/10 dark:bg-primary/20'
+                        : 'border-border bg-card hover:bg-accent'
+                    }`}
                   >
-                    <span className="font-bold">DeepSeek Chat</span>
-                    <span className="text-[10px] opacity-70">快速响应，适合日常对话</span>
-                  </Button>
-                  <Button
-                    variant={settings.model === 'deepseek-reasoner' ? 'secondary' : 'outline'}
-                    className={`h-auto py-4 flex flex-col items-start ${settings.model === 'deepseek-reasoner' ? 'border-2 border-primary' : ''}`}
+                    <span className="font-bold text-sm">DeepSeek Chat</span>
+                    <span className="text-[10px] text-muted-foreground mt-1">快速响应，适合日常对话</span>
+                  </button>
+                  <button
                     onClick={() => handleModelChange('deepseek-reasoner')}
+                    className={`h-auto py-4 px-4 flex flex-col items-start rounded-lg border-2 transition-all ${
+                      settings.model === 'deepseek-reasoner'
+                        ? 'border-primary bg-primary/10 dark:bg-primary/20'
+                        : 'border-border bg-card hover:bg-accent'
+                    }`}
                   >
-                    <span className="font-bold">DeepSeek Reasoner</span>
-                    <span className="text-[10px] opacity-70">深度思考，适合复杂推理</span>
-                  </Button>
+                    <span className="font-bold text-sm">DeepSeek Reasoner</span>
+                    <span className="text-[10px] text-muted-foreground mt-1">深度思考，适合复杂推理</span>
+                  </button>
                 </div>
                 {settings.model === 'deepseek-reasoner' && (
                   <p className="text-xs text-amber-600 dark:text-amber-400">
@@ -137,15 +179,11 @@ export function SettingsPage() {
                     </Label>
                     <span className="text-sm font-mono bg-muted px-2 py-0.5 rounded">{settings.temperature.toFixed(1)}</span>
                   </div>
-                  <input
-                    type="range"
-                    min={0}
-                    max={1}
-                    step={0.1}
+                  <RangeSlider
+                    min={0} max={1} step={0.1}
                     value={settings.temperature}
-                    onChange={(e) => setSettings(prev => ({ ...prev, temperature: parseFloat(e.target.value) }))}
+                    onChange={(v) => setSettings(prev => ({ ...prev, temperature: v }))}
                     disabled={settings.model === 'deepseek-reasoner'}
-                    className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                   <p className="text-xs text-muted-foreground">
                     控制回答的随机性。较低的值更确定，较高的值更具创意。
@@ -171,14 +209,10 @@ export function SettingsPage() {
                   <Label>Top-K 检索数量</Label>
                   <span className="text-sm font-mono bg-muted px-2 py-0.5 rounded">{settings.topK}</span>
                 </div>
-                <input
-                  type="range"
-                  min={1}
-                  max={10}
-                  step={1}
+                <RangeSlider
+                  min={1} max={10} step={1}
                   value={settings.topK}
-                  onChange={(e) => setSettings(prev => ({ ...prev, topK: parseInt(e.target.value) }))}
-                  className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                  onChange={(v) => setSettings(prev => ({ ...prev, topK: v }))}
                 />
                 <p className="text-xs text-muted-foreground">
                   每次提问时从知识库中检索的相关片段数量。
@@ -188,9 +222,19 @@ export function SettingsPage() {
               <div className="space-y-4">
                 <Label>分块策略 (Chunk Size)</Label>
                 <div className="grid grid-cols-3 gap-2">
-                  <Button variant="outline" size="sm">512 tokens</Button>
-                  <Button variant="secondary" size="sm">1024 tokens</Button>
-                  <Button variant="outline" size="sm">2048 tokens</Button>
+                  {CHUNK_SIZES.map((size) => (
+                    <button
+                      key={size}
+                      onClick={() => setChunkSize(size)}
+                      className={`py-2 px-3 text-sm rounded-md border transition-all ${
+                        chunkSize === size
+                          ? 'border-primary bg-primary/10 dark:bg-primary/20 text-foreground font-medium'
+                          : 'border-border bg-card text-muted-foreground hover:bg-accent hover:text-foreground'
+                      }`}
+                    >
+                      {size} tokens
+                    </button>
+                  ))}
                 </div>
               </div>
             </CardContent>

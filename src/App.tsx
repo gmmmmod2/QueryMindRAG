@@ -8,6 +8,7 @@ import { Layout } from './components/Layout';
 import { ChatPage } from './pages/ChatPage';
 import { KnowledgePage } from './pages/KnowledgePage';
 import { SettingsPage } from './pages/SettingsPage';
+import { UserPage } from './pages/UserPage';
 import { useTheme } from './hooks/useTheme';
 
 export default function App() {
@@ -23,9 +24,9 @@ export default function App() {
           <Route path="/chat/:id" element={<ChatPage />} />
           <Route path="/knowledge" element={<KnowledgePage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/user" element={<UserPage />} />
         </Routes>
       </Layout>
     </Router>
   );
 }
-
