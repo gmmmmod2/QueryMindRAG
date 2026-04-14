@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Document } from '@/types';
-import { mockApi } from '@/lib/mockApi';
+import { deepseekApi } from '@/lib/deepseekApi';
 import { motion, AnimatePresence } from 'motion/react';
 
 export function KnowledgePage() {
@@ -17,7 +17,7 @@ export function KnowledgePage() {
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    mockApi.getDocuments().then(setDocuments);
+    deepseekApi.getDocuments().then(setDocuments);
   }, []);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -41,7 +41,7 @@ export function KnowledgePage() {
     }, 100);
 
     try {
-      const newDoc = await mockApi.uploadDocument(file);
+      const newDoc = await deepseekApi.uploadDocument(file);
       setDocuments(prev => [newDoc, ...prev]);
     } catch (error) {
       console.error('Upload failed:', error);
@@ -59,7 +59,7 @@ export function KnowledgePage() {
   };
 
   const handleDelete = async (id: string) => {
-    await mockApi.deleteDocument(id);
+    await deepseekApi.deleteDocument(id);
     setDocuments(prev => prev.filter(doc => doc.id !== id));
   };
 

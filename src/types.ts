@@ -21,6 +21,7 @@ export interface Message {
   content: string;
   timestamp: string;
   citations?: Citation[];
+  reasoning_content?: string; // DeepSeek reasoner thinking process
 }
 
 export interface Conversation {

@@ -6,7 +6,7 @@ import { Separator } from './ui/separator';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import { Conversation } from '@/types';
-import { mockApi } from '@/lib/mockApi';
+import { deepseekApi } from '@/lib/deepseekApi';
 
 interface SidebarProps {
   onNavigate?: () => void;
@@ -17,7 +17,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
 
   useEffect(() => {
-    mockApi.getConversations().then(setConversations);
+    deepseekApi.getConversations().then(setConversations);
   }, []);
 
   const handleNewChat = () => {

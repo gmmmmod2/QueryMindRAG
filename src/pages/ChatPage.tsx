@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Send, Sparkles, ArrowRight } from 'lucide-react';
+import { Send, Sparkles, ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MessageBubble } from '@/components/MessageBubble';
 import { CitationPanel } from '@/components/CitationPanel';
 import { Message, Citation } from '@/types';
-import { mockApi } from '@/lib/mockApi';
+import { deepseekApi, getSettings } from '@/lib/deepseekApi';
 import { motion } from 'motion/react';
 
 export function ChatPage() {
@@ -15,11 +15,13 @@ export function ChatPage() {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [activeCitation, setActiveCitation] = useState<Citation | null>(null);
+  const [elapsedTime, setElapsedTime] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (id) {
-      mockApi.getConversations().then(convs => {
+      deepseekApi.getConversations().then(convs => {
         const conv = convs.find(c => c.id === id);
         if (conv) setMessages(conv.messages);
       });
@@ -32,6 +34,13 @@ export function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
 
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
+
   const handleSend = async () => {
     if (!inputValue.trim() || isLoading) return;
 
@@ -42,32 +51,53 @@ export function ChatPage() {
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
     setInputValue('');
     setIsLoading(true);
+    setElapsedTime(0);
+
+    // Start elapsed timer
+    timerRef.current = setInterval(() => {
+      setElapsedTime(prev => prev + 1);
+    }, 1000);
 
     try {
-      const response = await mockApi.chat(userMessage.content, id);
+      const response = await deepseekApi.chat(userMessage.content, id, updatedMessages);
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: response.answer,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        citations: response.citations,
+        citations: response.citations.length > 0 ? response.citations : undefined,
+        reasoning_content: response.reasoning_content,
       };
       setMessages(prev => [...prev, assistantMessage]);
-    } catch (error) {
-      console.error(error);
+    } catch (error: any) {
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: `⚠️ 请求失败：${error.message}\n\n请检查 API 密钥是否已在 Vercel 环境变量中正确配置。`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
     }
   };
+
+  const currentModel = getSettings().model;
+  const isReasoner = currentModel === 'deepseek-reasoner';
 
   const suggestedQuestions = [
     "什么是RAG架构？",
     "如何提高检索的准确性？",
     "向量数据库的作用是什么？",
-    "Gemini Pro和Flash有什么区别？"
+    "DeepSeek Chat和Reasoner有什么区别？"
   ];
 
   return (
@@ -83,8 +113,11 @@ export function ChatPage() {
               <Sparkles className="h-8 w-8 text-primary" />
             </motion.div>
             <h1 className="text-3xl font-bold mb-2 tracking-tight">您好，我是智询 AI</h1>
-            <p className="text-muted-foreground max-w-md mb-12">
+            <p className="text-muted-foreground max-w-md mb-2">
               基于您的知识库，我可以为您提供准确的问答服务。请在下方输入您的问题。
+            </p>
+            <p className="text-xs text-muted-foreground mb-12">
+              当前模型：<span className="font-mono font-semibold text-primary">{currentModel}</span>
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-2xl">
@@ -113,18 +146,33 @@ export function ChatPage() {
               <div className="flex w-full gap-4 py-8 px-4 md:px-8 bg-muted/30">
                 <div className="flex-shrink-0">
                   <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center">
-                    <Sparkles className="h-5 w-5 text-primary-foreground animate-pulse" />
+                    <Loader2 className="h-5 w-5 text-primary-foreground animate-spin" />
                   </div>
                 </div>
-                <div className="flex-1 space-y-4">
+                <div className="flex-1 space-y-3">
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-sm">智询 AI</span>
+                    <span className="text-xs text-muted-foreground font-mono">
+                      {currentModel}
+                    </span>
                   </div>
-                  <div className="flex gap-1">
-                    <div className="w-2 h-2 rounded-full bg-primary/40 animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <div className="w-2 h-2 rounded-full bg-primary/40 animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <div className="w-2 h-2 rounded-full bg-primary/40 animate-bounce" style={{ animationDelay: '300ms' }} />
+                  <div className="flex items-center gap-3">
+                    <Loader2 className="h-4 w-4 text-primary animate-spin" />
+                    <span className="text-sm text-muted-foreground">
+                      {isReasoner ? '深度思考中' : '正在生成回答'}
+                      <span className="inline-flex w-6">
+                        {'.'.repeat((elapsedTime % 3) + 1)}
+                      </span>
+                    </span>
+                    <span className="text-xs text-muted-foreground/60 font-mono">
+                      {elapsedTime}s
+                    </span>
                   </div>
+                  {isReasoner && elapsedTime > 5 && (
+                    <p className="text-[10px] text-muted-foreground/50">
+                      思考模式可能需要较长时间，请耐心等待
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -142,7 +190,6 @@ export function ChatPage() {
               value={inputValue}
               onChange={(e) => {
                 setInputValue(e.target.value);
-                // Auto-resize textarea
                 const target = e.target;
                 target.style.height = 'auto';
                 target.style.height = `${Math.min(target.scrollHeight, 128)}px`;
@@ -166,7 +213,7 @@ export function ChatPage() {
             </Button>
           </div>
           <p className="text-[10px] text-center text-muted-foreground mt-2">
-            Enter 发送，Shift + Enter 换行 • 基于您的知识库生成
+            Enter 发送，Shift + Enter 换行 • 当前模型：{currentModel}
           </p>
         </div>
       </div>
