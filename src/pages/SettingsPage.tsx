@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { useTheme } from '@/hooks/useTheme';
@@ -136,15 +135,17 @@ export function SettingsPage() {
                       <Sliders className="h-4 w-4" />
                       Temperature (温度)
                     </Label>
-                    <span className="text-sm font-mono">{settings.temperature}</span>
+                    <span className="text-sm font-mono bg-muted px-2 py-0.5 rounded">{settings.temperature.toFixed(1)}</span>
                   </div>
-                  <Slider
-                    value={[settings.temperature]}
-                    onValueChange={(val) => setSettings(prev => ({ ...prev, temperature: val[0] }))}
-                    max={1}
+                  <input
+                    type="range"
                     min={0}
+                    max={1}
                     step={0.1}
+                    value={settings.temperature}
+                    onChange={(e) => setSettings(prev => ({ ...prev, temperature: parseFloat(e.target.value) }))}
                     disabled={settings.model === 'deepseek-reasoner'}
+                    className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                   <p className="text-xs text-muted-foreground">
                     控制回答的随机性。较低的值更确定，较高的值更具创意。
@@ -168,14 +169,16 @@ export function SettingsPage() {
               <div className="space-y-4">
                 <div className="flex justify-between">
                   <Label>Top-K 检索数量</Label>
-                  <span className="text-sm font-mono">{settings.topK}</span>
+                  <span className="text-sm font-mono bg-muted px-2 py-0.5 rounded">{settings.topK}</span>
                 </div>
-                <Slider
-                  value={[settings.topK]}
-                  onValueChange={(val) => setSettings(prev => ({ ...prev, topK: val[0] }))}
+                <input
+                  type="range"
                   min={1}
                   max={10}
                   step={1}
+                  value={settings.topK}
+                  onChange={(e) => setSettings(prev => ({ ...prev, topK: parseInt(e.target.value) }))}
+                  className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
                 />
                 <p className="text-xs text-muted-foreground">
                   每次提问时从知识库中检索的相关片段数量。

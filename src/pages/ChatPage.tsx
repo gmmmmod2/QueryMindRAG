@@ -146,7 +146,7 @@ export function ChatPage() {
               <div className="flex w-full gap-4 py-8 px-4 md:px-8 bg-muted/30">
                 <div className="flex-shrink-0">
                   <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center">
-                    <Loader2 className="h-5 w-5 text-primary-foreground animate-spin" />
+                    <Sparkles className="h-5 w-5 text-primary-foreground" />
                   </div>
                 </div>
                 <div className="flex-1 space-y-3">
