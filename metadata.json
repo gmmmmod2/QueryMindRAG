@@ -1,0 +1,5 @@
+{
+  "name": "智询 RAG",
+  "description": "AI-powered Knowledge Base Q&A System with RAG architecture, document management, and source citations.",
+  "requestFramePermissions": []
+}

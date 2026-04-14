@@ -1,2 +1,20 @@
-# QueryMindRAG
-告别繁琐的文档翻查，智询 RAG 让知识主动寻找你。无论你是需要解读晦涩的法务条款、查找复杂的运维手册，还是梳理海量的研究文献，智询 RAG 都能像一位驻场的资深专家，先在海量数据中精准锁定上下文，再以自然语言为你呈现逻辑清晰的答案。每一次回答，皆有凭有据，可溯源头。
+<div align="center">
+<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+</div>
+
+# Run and deploy your AI Studio app
+
+This contains everything you need to run your app locally.
+
+View your app in AI Studio: https://ai.studio/apps/de547a13-cc01-403a-bba2-ec94ab6afc8f
+
+## Run Locally
+
+**Prerequisites:**  Node.js
+
+
+1. Install dependencies:
+   `npm install`
+2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+3. Run the app:
+   `npm run dev`
