@@ -11,78 +11,28 @@ import { deepseekApi } from '@/lib/deepseekApi';
 import { pinyinMatch } from '@/lib/pinyin';
 import { motion, AnimatePresence } from 'motion/react';
 
-// Mock document content for preview
-const MOCK_CONTENT: Record<string, string> = {
-  '1': `# 深度学习基础
-
-## 第一章：神经网络概述
-
-深度学习是机器学习的一个分支，它通过多层神经网络来学习数据的层次化表示。
-
-### 1.1 感知机模型
-感知机是最简单的神经网络结构，由输入层和输出层组成。它可以解决线性可分问题。
-
-### 1.2 多层感知机 (MLP)
-多层感知机在感知机的基础上添加了隐藏层，使其能够处理非线性问题。通过反向传播算法进行训练。
-
-### 1.3 激活函数
-常用的激活函数包括：
-- **ReLU**: f(x) = max(0, x)，计算效率高
-- **Sigmoid**: f(x) = 1/(1+e^(-x))，输出范围 (0,1)
-- **Tanh**: f(x) = (e^x - e^(-x))/(e^x + e^(-x))
-
-## 第二章：卷积神经网络
-
-卷积神经网络 (CNN) 特别适合处理图像数据，通过卷积操作提取局部特征...`,
-
-  '2': `# RAG 架构指南
-
-## 什么是 RAG？
-
-RAG（Retrieval-Augmented Generation，检索增强生成）是一种将信息检索与生成式 AI 相结合的技术架构。
-
-## 核心组件
-
-### 1. 文档处理管线
-- 文档加载与解析
-- 文本分块 (Chunking)
-- 向量化 (Embedding)
-- 存储到向量数据库
-
-### 2. 检索器 (Retriever)
-检索器负责从海量文档中快速定位与问题最相关的知识块。常用的检索方式包括：
-- 语义检索：基于向量相似度
-- 关键词检索：基于 BM25 等算法
-- 混合检索：结合两种方式
-
-### 3. 生成器 (Generator)
-生成器通过将检索到的上下文与原始问题结合，生成更准确的回答。
-
-## 最佳实践
-- 选择合适的分块大小 (512-1024 tokens)
-- 使用重排序 (Reranking) 提升检索质量
-- 实施上下文压缩减少噪声`,
-
-  '3': `# 2024 大模型技术报告
-
-**状态：处理中...**
-
-此文档正在处理中，内容解析完成后将在此显示。
-
-预计包含以下章节：
-- 大模型发展趋势
-- 主流模型对比
-- 训练技术演进
-- 推理优化方案
-- 行业应用案例`,
-};
-
 export function KnowledgePage() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
+  const [previewContent, setPreviewContent] = useState<string>('');
+  const [loadingPreview, setLoadingPreview] = useState(false);
+
+  const handlePreview = async (doc: Document) => {
+    setPreviewDoc(doc);
+    setPreviewContent('');
+    setLoadingPreview(true);
+    try {
+      const data = await deepseekApi.getDocumentContent(doc.id);
+      setPreviewContent(data.content);
+    } catch {
+      setPreviewContent('暂无可预览的内容。');
+    } finally {
+      setLoadingPreview(false);
+    }
+  };
 
   useEffect(() => {
     deepseekApi.getDocuments().then(setDocuments);
@@ -214,7 +164,7 @@ export function KnowledgePage() {
                 >
                   <Card
                     className="group hover:shadow-md transition-shadow cursor-pointer"
-                    onClick={() => setPreviewDoc(doc)}
+                    onClick={() => handlePreview(doc)}
                   >
                     <CardHeader className="p-4 pb-2">
                       <div className="flex items-start justify-between gap-2">
@@ -226,7 +176,7 @@ export function KnowledgePage() {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8 text-muted-foreground hover:text-primary"
-                            onClick={(e) => { e.stopPropagation(); setPreviewDoc(doc); }}
+                            onClick={(e) => { e.stopPropagation(); handlePreview(doc); }}
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
@@ -321,14 +271,18 @@ export function KnowledgePage() {
               {/* Content */}
               <ScrollArea className="flex-1 p-6">
                 <div className="prose prose-sm dark:prose-invert max-w-none">
-                  {(MOCK_CONTENT[previewDoc.id] || '暂无可预览的内容。此文档的内容将在处理完成后显示。')
+                  {loadingPreview ? (
+                    <div className="flex items-center justify-center py-12">
+                      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                      <span className="ml-3 text-sm text-muted-foreground">加载中...</span>
+                    </div>
+                  ) : (previewContent || '暂无可预览的内容。')
                     .split('\n')
                     .map((line, i) => {
                       if (line.startsWith('### ')) return <h3 key={i} className="text-base font-semibold mt-4 mb-2">{line.slice(4)}</h3>;
                       if (line.startsWith('## ')) return <h2 key={i} className="text-lg font-bold mt-6 mb-2">{line.slice(3)}</h2>;
                       if (line.startsWith('# ')) return <h1 key={i} className="text-xl font-bold mt-6 mb-3">{line.slice(2)}</h1>;
                       if (line.startsWith('- ')) return <li key={i} className="ml-4 text-sm">{line.slice(2)}</li>;
-                      if (line.startsWith('**') && line.endsWith('**')) return <p key={i} className="font-bold text-sm">{line.slice(2, -2)}</p>;
                       if (line.trim() === '') return <div key={i} className="h-2" />;
                       return <p key={i} className="text-sm leading-relaxed text-foreground/80">{line}</p>;
                     })}
